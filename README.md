@@ -38,6 +38,13 @@ The command prompt accepts quoted arguments, for example `gh pr checks 42` or
 `git log --oneline -20`. Commands run in the current repository and show their
 output and exit status in the TUI.
 
+## Try the pull request view
+
+From a repository with a GitHub remote, run `cargo run` and press `6` to load
+open pull requests. Use `j` / `k` to select one, `Enter` to read its details,
+and `c` to display its checks. Press `r` to refresh after checks change.
+If a pull request has no checks, the checks pane shows the message from `gh`.
+
 ## Code structure
 
 - `src/app.rs` owns view state and keyboard actions.
