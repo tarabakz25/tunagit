@@ -7,7 +7,7 @@ use ratatui::{
 };
 
 use super::theme;
-use crate::app::App;
+use crate::app::{App, View};
 
 pub fn render(frame: &mut Frame<'_>, area: Rect, app: &App) {
     let line = if let Some(input) = &app.input {
@@ -23,15 +23,26 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &App) {
         ])
     } else {
         let mut spans = vec![Span::raw(" ")];
-        for (key, label) in [
-            ("1-5", " Git  "),
-            ("6", " PRs  "),
-            ("c", " checks  "),
-            ("Enter", " detail  "),
-            (":", " command  "),
-            ("r", " refresh  "),
-            ("q", " quit"),
-        ] {
+        let shortcuts = if matches!(app.view, View::PullRequests | View::Checks) {
+            [
+                ("h/l", " pane  "),
+                ("j/k", " move/scroll  "),
+                ("PgUp/Dn", " page  "),
+                ("Enter", " detail  "),
+                ("c", " checks  "),
+                ("q", " quit"),
+            ]
+        } else {
+            [
+                ("1-5", " Git  "),
+                ("6", " PRs  "),
+                ("c", " checks  "),
+                (":", " command  "),
+                ("r", " refresh  "),
+                ("q", " quit"),
+            ]
+        };
+        for (key, label) in shortcuts {
             spans.push(Span::styled(
                 key,
                 Style::default()

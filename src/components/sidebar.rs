@@ -7,20 +7,10 @@ use ratatui::{
 };
 
 use super::theme;
-use crate::app::{App, View};
+use crate::app::{App, PrFocus, View};
 
 pub fn render(frame: &mut Frame<'_>, area: Rect, app: &App) {
-    let [status, files, branches, commits, stash, prs] = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Length(4),
-            Constraint::Length(5),
-            Constraint::Length(4),
-            Constraint::Length(3),
-            Constraint::Length(3),
-            Constraint::Min(4),
-        ])
-        .areas(area);
+    let [status, files, branches, commits, stash, prs] = panel_areas(area);
 
     let repo = if app.git.repo.is_empty() {
         "loading…"
@@ -85,6 +75,24 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &App) {
     render_prs(frame, prs, app);
 }
 
+fn panel_areas(area: Rect) -> [Rect; 6] {
+    Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length(4),
+            Constraint::Length(5),
+            Constraint::Length(4),
+            Constraint::Length(3),
+            Constraint::Length(3),
+            Constraint::Min(4),
+        ])
+        .areas(area)
+}
+
+pub(super) fn pr_area(area: Rect) -> Rect {
+    panel_areas(area)[5]
+}
+
 fn preview(text: &str, empty: &str, max_lines: usize) -> String {
     if text.is_empty() || text == "(no output)" {
         empty.to_string()
@@ -124,7 +132,7 @@ fn render_prs(frame: &mut Frame<'_>, area: Rect, app: &App) {
     let list = List::new(items)
         .block(theme::panel(
             "[6] Pull requests",
-            matches!(app.view, View::PullRequests | View::Checks),
+            matches!(app.view, View::PullRequests | View::Checks) && app.pr_focus == PrFocus::List,
         ))
         .highlight_style(
             Style::default()
