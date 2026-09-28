@@ -3,11 +3,11 @@ mod commands;
 mod components;
 
 use crossterm::{
-    event::{self, Event, KeyEventKind},
+    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyEventKind},
     execute,
     terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
-use ratatui::{Terminal, backend::CrosstermBackend};
+use ratatui::{Terminal, backend::CrosstermBackend, layout::Rect};
 use std::{
     io::{self, Stdout},
     sync::mpsc,
@@ -22,7 +22,7 @@ type Tui = Terminal<CrosstermBackend<Stdout>>;
 fn main() -> io::Result<()> {
     enable_raw_mode()?;
     let mut stdout = io::stdout();
-    execute!(stdout, EnterAlternateScreen)?;
+    execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
     let mut terminal = Terminal::new(CrosstermBackend::new(stdout))?;
     let (tx, rx) = mpsc::channel::<JobResult>();
     let mut app = App::new(tx, rx);
@@ -30,7 +30,11 @@ fn main() -> io::Result<()> {
 
     let result = event_loop(&mut terminal, &mut app);
     disable_raw_mode()?;
-    execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
+    execute!(
+        terminal.backend_mut(),
+        DisableMouseCapture,
+        LeaveAlternateScreen
+    )?;
     terminal.show_cursor()?;
     result
 }
@@ -52,6 +56,15 @@ fn event_loop(terminal: &mut Tui, app: &mut App) -> io::Result<()> {
                     return Ok(());
                 }
                 redraw = true;
+            }
+            Event::Mouse(mouse) => {
+                let size = terminal.size()?;
+                let area = Rect::new(0, 0, size.width, size.height);
+                if let Some(target) =
+                    components::scroll_target(area, mouse.column, mouse.row, app.view)
+                {
+                    redraw |= app.handle_mouse_scroll(mouse.kind, target);
+                }
             }
             Event::Resize(_, _) => redraw = true,
             _ => {}

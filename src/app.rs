@@ -3,7 +3,7 @@ use std::{
     thread,
 };
 
-use crossterm::event::KeyCode;
+use crossterm::event::{KeyCode, MouseEventKind};
 
 use crate::commands::{GitSnapshot, JobKind, JobResult, PullRequest, execute_job};
 
@@ -17,6 +17,17 @@ pub enum View {
     PullRequests,
     Checks,
     Output,
+}
+
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum PrFocus {
+    List,
+    Detail,
+}
+
+pub enum ScrollTarget {
+    PrList,
+    Detail,
 }
 
 impl View {
@@ -41,6 +52,7 @@ pub struct App {
     pub pull_requests: Vec<PullRequest>,
     pub pr_message: String,
     pub selected_pr: usize,
+    pub pr_focus: PrFocus,
     pub detail: String,
     pub detail_number: Option<u64>,
     pub checks: String,
@@ -65,6 +77,7 @@ impl App {
             pull_requests: Vec::new(),
             pr_message: "Press p to load pull requests".into(),
             selected_pr: 0,
+            pr_focus: PrFocus::List,
             detail: String::new(),
             detail_number: None,
             checks: String::new(),
@@ -209,12 +222,19 @@ impl App {
             KeyCode::Char('c') => self.open(View::Checks),
             KeyCode::Char('7') => self.view = View::Output,
             KeyCode::Char('r') => self.refresh(),
+            KeyCode::Char('h') | KeyCode::Left if self.is_pr_view() => {
+                self.pr_focus = PrFocus::List;
+            }
+            KeyCode::Char('l') | KeyCode::Right if self.is_pr_view() => {
+                self.pr_focus = PrFocus::Detail;
+            }
             KeyCode::Char('j') | KeyCode::Down => self.move_selection(1),
             KeyCode::Char('k') | KeyCode::Up => self.move_selection(-1),
             KeyCode::PageDown => self.move_selection(10),
             KeyCode::PageUp => self.move_selection(-10),
             KeyCode::Enter if self.view == View::PullRequests => {
                 if let Some(number) = self.selected_pr().map(|pr| pr.number) {
+                    self.pr_focus = PrFocus::Detail;
                     self.run(JobKind::Details(number));
                 }
             }
@@ -236,6 +256,11 @@ impl App {
     }
 
     fn open(&mut self, view: View) {
+        self.pr_focus = if view == View::Checks {
+            PrFocus::Detail
+        } else {
+            PrFocus::List
+        };
         self.view = view;
         self.scroll = 0;
         self.refresh();
@@ -258,8 +283,7 @@ impl App {
     }
 
     fn move_selection(&mut self, delta: isize) {
-        if matches!(self.view, View::PullRequests | View::Checks) && !self.pull_requests.is_empty()
-        {
+        if self.is_pr_view() && self.pr_focus == PrFocus::List && !self.pull_requests.is_empty() {
             let next = (self.selected_pr as isize + delta)
                 .clamp(0, self.pull_requests.len() as isize - 1) as usize;
             if next != self.selected_pr {
@@ -270,10 +294,42 @@ impl App {
                 self.checks_number = None;
                 self.scroll = 0;
             }
-        } else if delta < 0 {
+        } else {
+            self.scroll_by(delta);
+        }
+    }
+
+    fn scroll_by(&mut self, delta: isize) {
+        if delta < 0 {
             self.scroll = self.scroll.saturating_sub(delta.unsigned_abs() as u16);
         } else {
             self.scroll = self.scroll.saturating_add(delta as u16);
         }
+    }
+
+    fn is_pr_view(&self) -> bool {
+        matches!(self.view, View::PullRequests | View::Checks)
+    }
+
+    pub fn handle_mouse_scroll(&mut self, kind: MouseEventKind, target: ScrollTarget) -> bool {
+        let delta = match kind {
+            MouseEventKind::ScrollDown => 3,
+            MouseEventKind::ScrollUp => -3,
+            _ => return false,
+        };
+        match target {
+            ScrollTarget::PrList if self.is_pr_view() => {
+                self.pr_focus = PrFocus::List;
+                self.move_selection(delta);
+            }
+            ScrollTarget::Detail => {
+                if self.is_pr_view() {
+                    self.pr_focus = PrFocus::Detail;
+                }
+                self.scroll_by(delta);
+            }
+            ScrollTarget::PrList => return false,
+        }
+        true
     }
 }

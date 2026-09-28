@@ -1,7 +1,7 @@
 use ratatui::{Frame, layout::Rect};
 
 use super::theme;
-use crate::app::{App, View};
+use crate::app::{App, PrFocus, View};
 
 pub fn render(frame: &mut Frame<'_>, area: Rect, app: &App) {
     let content = match app.view {
@@ -35,7 +35,12 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &App) {
             .unwrap_or_else(|| format!("[0] {}", app.view.title())),
         _ => format!("[0] {}", app.view.title()),
     };
-    frame.render_widget(theme::text_panel(&title, &content, false, app.scroll), area);
+    let active =
+        matches!(app.view, View::PullRequests | View::Checks) && app.pr_focus == PrFocus::Detail;
+    frame.render_widget(
+        theme::text_panel(&title, &content, active, app.scroll),
+        area,
+    );
 }
 
 fn value(text: &str) -> &str {

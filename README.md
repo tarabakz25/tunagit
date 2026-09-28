@@ -26,17 +26,24 @@ set, remove it from the environment to see the colored panels.
 | `4` | Commits |
 | `5` | Stash |
 | `6` / `p` | Pull requests (`gh pr list`) |
-| `Enter` | Show the selected pull request (`gh pr view`) |
+| `Enter` | Show the selected pull request and focus its details (`gh pr view`) |
 | `c` | Show checks for the selected pull request (`gh pr checks`) |
+| `h` / `l`, left / right | Focus the PR list or the detail pane |
 | `:` | Run any `git ...` or `gh ...` command |
 | `r` | Refresh the current view |
-| `j` / `k`, arrows | Select a pull request or scroll output |
+| `j` / `k`, up / down | Select a PR in the list or scroll the focused detail pane |
+| PageUp / PageDown | Move ten PRs or scroll the detail pane ten lines |
+| Mouse wheel | In the PR view, scroll the list or detail pane under the pointer |
 | `Tab` | Move to the next view |
 | `q` | Quit |
 
 The command prompt accepts quoted arguments, for example `gh pr checks 42` or
 `git log --oneline -20`. Commands run in the current repository and show their
 output and exit status in the TUI.
+
+In the pull request view, press `l` to focus the right pane and scroll a long
+description with `j` / `k`, the arrow keys, PageUp / PageDown, or the mouse
+wheel. Press `h` to return to the PR list.
 
 ## Code structure
 
