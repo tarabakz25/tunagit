@@ -46,7 +46,7 @@ fn regions(area: Rect) -> (Rect, Rect, Rect, Rect) {
 pub fn scroll_target(area: Rect, column: u16, row: u16, view: View) -> Option<ScrollTarget> {
     let (left, main, _, _) = regions(area);
     if matches!(view, View::PullRequests | View::Checks)
-        && contains(sidebar::pr_area(left), column, row)
+        && contains(sidebar::pr_area(left, view), column, row)
     {
         Some(ScrollTarget::PrList)
     } else if contains(main, column, row) || contains(left, column, row) {
