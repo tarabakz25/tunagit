@@ -1,6 +1,6 @@
 use ratatui::{
     Frame,
-    layout::Rect,
+    layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Modifier, Style},
     text::{Line, Span},
     widgets::Paragraph,
@@ -10,6 +10,29 @@ use super::theme;
 use crate::app::{App, View};
 
 pub fn render(frame: &mut Frame<'_>, area: Rect, app: &App) {
+    let version = format!("v{}", env!("CARGO_PKG_VERSION"));
+    let version_width = version.len() as u16 + 1;
+    if area.width > version_width + 24 {
+        let [left, right] = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([Constraint::Min(0), Constraint::Length(version_width)])
+            .areas(area);
+        render_hints(frame, left, app);
+        frame.render_widget(
+            Paragraph::new(Line::from(Span::styled(
+                format!("{version} "),
+                Style::default().fg(theme::MUTED),
+            )))
+            .alignment(Alignment::Right)
+            .style(Style::default().bg(theme::BG)),
+            right,
+        );
+    } else {
+        render_hints(frame, area, app);
+    }
+}
+
+fn render_hints(frame: &mut Frame<'_>, area: Rect, app: &App) {
     let line = if let Some(input) = &app.input {
         Line::from(vec![
             Span::styled(
@@ -57,4 +80,44 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &App) {
         Paragraph::new(line).style(Style::default().bg(theme::BG)),
         area,
     );
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use ratatui::{Terminal, backend::TestBackend};
+    use std::sync::mpsc;
+
+    fn render_footer(width: u16) -> String {
+        let backend = TestBackend::new(width, 1);
+        let mut terminal = Terminal::new(backend).expect("terminal");
+        let (tx, rx) = mpsc::channel();
+        let app = App::new(tx, rx);
+        terminal
+            .draw(|frame| render(frame, frame.area(), &app))
+            .expect("draw");
+        let buffer = terminal.backend().buffer().clone();
+        (0..width)
+            .map(|x| buffer[(x, 0)].symbol().to_string())
+            .collect()
+    }
+
+    #[test]
+    fn shows_version_at_bottom_right() {
+        let line = render_footer(80);
+        let version = format!("v{} ", env!("CARGO_PKG_VERSION"));
+        assert!(
+            line.ends_with(&version),
+            "expected footer to end with {version:?}, got {line:?}"
+        );
+    }
+
+    #[test]
+    fn hides_version_on_narrow_screens() {
+        let line = render_footer(20);
+        assert!(
+            !line.contains(env!("CARGO_PKG_VERSION")),
+            "expected no version on narrow footer, got {line:?}"
+        );
+    }
 }

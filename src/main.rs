@@ -20,6 +20,20 @@ use commands::{JobKind, JobResult};
 type Tui = Terminal<CrosstermBackend<Stdout>>;
 
 fn main() -> io::Result<()> {
+    match cli_action(&std::env::args().skip(1).collect::<Vec<_>>()) {
+        CliAction::PrintVersion => {
+            println!("tunagit {}", env!("CARGO_PKG_VERSION"));
+            return Ok(());
+        }
+        CliAction::PrintHelp => {
+            println!(
+                "tunagit {}\n\nA terminal interface for local Git and GitHub CLI.\n\nUsage: tunagit [--version | --help]\n\nOptions:\n  -V, --version  Print the version\n  -h, --help     Print this help",
+                env!("CARGO_PKG_VERSION")
+            );
+            return Ok(());
+        }
+        CliAction::Run => {}
+    }
     enable_raw_mode()?;
     let mut stdout = io::stdout();
     execute!(stdout, EnterAlternateScreen, EnableMouseCapture)?;
@@ -37,6 +51,23 @@ fn main() -> io::Result<()> {
     )?;
     terminal.show_cursor()?;
     result
+}
+
+#[derive(Debug, PartialEq, Eq)]
+enum CliAction {
+    Run,
+    PrintVersion,
+    PrintHelp,
+}
+
+fn cli_action(args: &[String]) -> CliAction {
+    if args.iter().any(|arg| arg == "--version" || arg == "-V") {
+        CliAction::PrintVersion
+    } else if args.iter().any(|arg| arg == "--help" || arg == "-h") {
+        CliAction::PrintHelp
+    } else {
+        CliAction::Run
+    }
 }
 
 fn event_loop(terminal: &mut Tui, app: &mut App) -> io::Result<()> {
@@ -81,5 +112,23 @@ fn event_loop(terminal: &mut Tui, app: &mut App) -> io::Result<()> {
             Event::Resize(_, _) => redraw = true,
             _ => {}
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn args(flags: &[&str]) -> Vec<String> {
+        flags.iter().map(|flag| flag.to_string()).collect()
+    }
+
+    #[test]
+    fn parses_cli_actions() {
+        assert_eq!(cli_action(&args(&[])), CliAction::Run);
+        assert_eq!(cli_action(&args(&["--version"])), CliAction::PrintVersion);
+        assert_eq!(cli_action(&args(&["-V"])), CliAction::PrintVersion);
+        assert_eq!(cli_action(&args(&["--help"])), CliAction::PrintHelp);
+        assert_eq!(cli_action(&args(&["-h"])), CliAction::PrintHelp);
     }
 }
