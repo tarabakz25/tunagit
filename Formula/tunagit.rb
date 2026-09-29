@@ -1,12 +1,8 @@
 # Homebrew formula for tunagit.
 #
-# Install directly from this repository:
-#   brew install https://raw.githubusercontent.com/tarabakz25/tunagit/master/Formula/tunagit.rb
-#
-# Or copy this file to a tap repository (e.g. homebrew-tap/Formula/tunagit.rb)
-# and install with:
-#   brew tap tarabakz25/tap
-#   brew install tunagit
+# Install by tapping this repository:
+#   brew tap tarabakz25/tunagit https://github.com/tarabakz25/tunagit.git
+#   brew install tarabakz25/tunagit/tunagit
 #
 # Release checklist (after pushing a new vX.Y.Z tag and the release workflow
 # finishes): update `version`, the four `url`s, and the four `sha256` values
@@ -39,7 +35,8 @@ class Tunagit < Formula
   end
 
   def install
-    bin.install Dir["tunagit-*/tunagit"].first
+    # Homebrew descends into the tarball's single top-level directory.
+    bin.install "tunagit"
   end
 
   test do

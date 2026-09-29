@@ -10,7 +10,8 @@ panel's details fill the right side, with a small command log below.
 ### Homebrew (macOS / Linux)
 
 ```sh
-brew install https://raw.githubusercontent.com/tarabakz25/tunagit/master/Formula/tunagit.rb
+brew tap tarabakz25/tunagit https://github.com/tarabakz25/tunagit.git
+brew install tarabakz25/tunagit/tunagit
 ```
 
 ### From source
