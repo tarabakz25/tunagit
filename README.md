@@ -5,6 +5,21 @@ Its layout follows lazygit's vertical panel arrangement. Status, Files, Local
 branches, Commits, Stash, and Pull requests stay on the left. The selected
 panel's details fill the right side, with a small command log below.
 
+## Install
+
+### Homebrew (macOS / Linux)
+
+```sh
+brew install https://raw.githubusercontent.com/tarabakz25/tunagit/master/Formula/tunagit.rb
+```
+
+### From source
+
+```sh
+cargo build --release
+./target/release/tunagit --version
+```
+
 ## Run
 
 ```sh
@@ -56,3 +71,13 @@ selected PR again for its full detail. Right-click a PR for its checks.
 - `src/commands.rs` runs `git` and `gh` and prepares their results.
 - `src/components/` contains the sidebar, detail, command log, footer, and
   theme components.
+
+## Release
+
+Maintainer steps for a new version:
+
+1. Bump `version` in `Cargo.toml` and commit it.
+2. Tag and push: `git tag vX.Y.Z && git push origin vX.Y.Z`.
+3. Wait for the `Release` workflow to publish the GitHub release.
+4. Copy the four `sha256` values from the release's `SHA256SUMS.txt` into
+   `Formula/tunagit.rb` (updating `version` and the `url`s as well).
