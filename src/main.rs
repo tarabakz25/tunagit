@@ -3,7 +3,7 @@ mod commands;
 mod components;
 
 use crossterm::{
-    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyEventKind},
+    event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyEventKind, MouseEventKind},
     execute,
     terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
@@ -60,10 +60,22 @@ fn event_loop(terminal: &mut Tui, app: &mut App) -> io::Result<()> {
             Event::Mouse(mouse) => {
                 let size = terminal.size()?;
                 let area = Rect::new(0, 0, size.width, size.height);
-                if let Some(target) =
-                    components::scroll_target(area, mouse.column, mouse.row, app.view)
-                {
-                    redraw |= app.handle_mouse_scroll(mouse.kind, target);
+                match mouse.kind {
+                    MouseEventKind::ScrollDown | MouseEventKind::ScrollUp => {
+                        if let Some(target) =
+                            components::scroll_target(area, mouse.column, mouse.row, app.view)
+                        {
+                            redraw |= app.handle_mouse_scroll(mouse.kind, target);
+                        }
+                    }
+                    MouseEventKind::Down(_) => {
+                        if let Some(target) =
+                            components::click_target(area, mouse.column, mouse.row, app)
+                        {
+                            redraw |= app.handle_mouse_click(mouse.kind, target);
+                        }
+                    }
+                    _ => {}
                 }
             }
             Event::Resize(_, _) => redraw = true,

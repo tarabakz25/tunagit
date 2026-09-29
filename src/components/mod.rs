@@ -11,7 +11,7 @@ use ratatui::{
     widgets::Block,
 };
 
-use crate::app::{App, ScrollTarget, View};
+use crate::app::{App, ClickTarget, ScrollTarget, View};
 
 pub fn render(frame: &mut Frame<'_>, app: &App) {
     frame.render_widget(
@@ -49,11 +49,22 @@ pub fn scroll_target(area: Rect, column: u16, row: u16, view: View) -> Option<Sc
         && contains(sidebar::pr_area(left), column, row)
     {
         Some(ScrollTarget::PrList)
-    } else if contains(main, column, row) {
+    } else if contains(main, column, row) || contains(left, column, row) {
         Some(ScrollTarget::Detail)
     } else {
         None
     }
+}
+
+pub fn click_target(area: Rect, column: u16, row: u16, app: &App) -> Option<ClickTarget> {
+    let (left, main, _, _) = regions(area);
+    if contains(left, column, row) {
+        return sidebar::click_target(left, column, row, app);
+    }
+    if contains(main, column, row) {
+        return Some(ClickTarget::Detail);
+    }
+    None
 }
 
 fn contains(area: Rect, column: u16, row: u16) -> bool {

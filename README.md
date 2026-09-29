@@ -33,7 +33,10 @@ set, remove it from the environment to see the colored panels.
 | `r` | Refresh the current view |
 | `j` / `k`, up / down | Select a PR in the list or scroll the focused detail pane |
 | PageUp / PageDown | Move ten PRs or scroll the detail pane ten lines |
-| Mouse wheel | In the PR view, scroll the list or detail pane under the pointer |
+| Left click | Switch sidebar panels, select a PR, or focus a pane |
+| Left click (same PR) | Show the selected pull request detail (like `Enter`) |
+| Right click (PR) | Show checks for the PR (like `c`) |
+| Mouse wheel | Scroll the list or detail pane under the pointer |
 | `Tab` | Move to the next view |
 | `q` | Quit |
 
@@ -41,9 +44,11 @@ The command prompt accepts quoted arguments, for example `gh pr checks 42` or
 `git log --oneline -20`. Commands run in the current repository and show their
 output and exit status in the TUI.
 
-In the pull request view, press `l` to focus the right pane and scroll a long
-description with `j` / `k`, the arrow keys, PageUp / PageDown, or the mouse
-wheel. Press `h` to return to the PR list.
+In the pull request view, press `l` (or click the right pane) to focus it and
+scroll a long description with `j` / `k`, the arrow keys, PageUp / PageDown,
+or the mouse wheel. Press `h` (or click the PR list) to return to the list.
+Click a sidebar panel to switch views, click a PR to select it, and click the
+selected PR again for its full detail. Right-click a PR for its checks.
 
 ## Code structure
 

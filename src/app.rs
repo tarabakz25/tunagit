@@ -3,11 +3,11 @@ use std::{
     thread,
 };
 
-use crossterm::event::{KeyCode, MouseEventKind};
+use crossterm::event::{KeyCode, MouseButton, MouseEventKind};
 
 use crate::commands::{GitSnapshot, JobKind, JobResult, PullRequest, execute_job};
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum View {
     Overview,
     Git,
@@ -27,6 +27,13 @@ pub enum PrFocus {
 
 pub enum ScrollTarget {
     PrList,
+    Detail,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ClickTarget {
+    SidebarView(View),
+    PrIndex(usize),
     Detail,
 }
 
@@ -287,12 +294,7 @@ impl App {
             let next = (self.selected_pr as isize + delta)
                 .clamp(0, self.pull_requests.len() as isize - 1) as usize;
             if next != self.selected_pr {
-                self.selected_pr = next;
-                self.detail.clear();
-                self.detail_number = None;
-                self.checks.clear();
-                self.checks_number = None;
-                self.scroll = 0;
+                self.select_pr(next);
             }
         } else {
             self.scroll_by(delta);
@@ -331,5 +333,112 @@ impl App {
             ScrollTarget::PrList => return false,
         }
         true
+    }
+
+    pub fn handle_mouse_click(&mut self, kind: MouseEventKind, target: ClickTarget) -> bool {
+        if self.input.is_some() {
+            return false;
+        }
+        let MouseEventKind::Down(button) = kind else {
+            return false;
+        };
+        match button {
+            MouseButton::Left => self.handle_left_click(target),
+            MouseButton::Right | MouseButton::Middle => self.handle_right_click(target),
+        }
+    }
+
+    fn handle_left_click(&mut self, target: ClickTarget) -> bool {
+        match target {
+            ClickTarget::SidebarView(view) => {
+                if view == self.view {
+                    if self.is_pr_view() && self.pr_focus != PrFocus::List {
+                        self.pr_focus = PrFocus::List;
+                        return true;
+                    }
+                    return false;
+                }
+                self.open(view);
+                true
+            }
+            ClickTarget::PrIndex(index) => self.select_pr_with_mouse(index, false),
+            ClickTarget::Detail => {
+                if self.is_pr_view() && self.pr_focus != PrFocus::Detail {
+                    self.pr_focus = PrFocus::Detail;
+                    true
+                } else {
+                    false
+                }
+            }
+        }
+    }
+
+    fn handle_right_click(&mut self, target: ClickTarget) -> bool {
+        match target {
+            ClickTarget::PrIndex(index) => self.select_pr_with_mouse(index, true),
+            ClickTarget::Detail if self.is_pr_view() => {
+                if self.view == View::Checks {
+                    return false;
+                }
+                self.open(View::Checks);
+                true
+            }
+            ClickTarget::Detail | ClickTarget::SidebarView(_) => false,
+        }
+    }
+
+    fn select_pr_with_mouse(&mut self, index: usize, open_checks: bool) -> bool {
+        if index >= self.pull_requests.len() {
+            return false;
+        }
+        if !self.is_pr_view() {
+            self.view = View::PullRequests;
+            self.pr_focus = PrFocus::List;
+            self.scroll = 0;
+            self.select_pr(index);
+            if open_checks {
+                self.open(View::Checks);
+            } else {
+                self.refresh();
+            }
+            return true;
+        }
+        if index != self.selected_pr {
+            self.select_pr(index);
+            self.pr_focus = PrFocus::List;
+            if open_checks {
+                self.open(View::Checks);
+            }
+            return true;
+        }
+        if open_checks {
+            if self.view == View::Checks {
+                return false;
+            }
+            self.open(View::Checks);
+            return true;
+        }
+        self.pr_focus = PrFocus::Detail;
+        let number = self.selected_pr().map(|pr| pr.number);
+        match (self.view, number) {
+            (View::PullRequests, Some(number)) => {
+                self.run(JobKind::Details(number));
+                true
+            }
+            (View::Checks, Some(number)) => {
+                self.run(JobKind::Checks(number));
+                true
+            }
+            _ => true,
+        }
+    }
+
+    fn select_pr(&mut self, index: usize) {
+        self.selected_pr = index;
+        self.detail.clear();
+        self.detail_number = None;
+        self.checks.clear();
+        self.checks_number = None;
+        self.scroll = 0;
     }
 }

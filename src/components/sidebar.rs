@@ -7,7 +7,7 @@ use ratatui::{
 };
 
 use super::theme;
-use crate::app::{App, PrFocus, View};
+use crate::app::{App, ClickTarget, PrFocus, View};
 
 pub fn render(frame: &mut Frame<'_>, area: Rect, app: &App) {
     let [status, files, branches, commits, stash, prs] = panel_areas(area);
@@ -75,7 +75,7 @@ pub fn render(frame: &mut Frame<'_>, area: Rect, app: &App) {
     render_prs(frame, prs, app);
 }
 
-fn panel_areas(area: Rect) -> [Rect; 6] {
+pub(super) fn panel_areas(area: Rect) -> [Rect; 6] {
     Layout::default()
         .direction(Direction::Vertical)
         .constraints([
@@ -91,6 +91,54 @@ fn panel_areas(area: Rect) -> [Rect; 6] {
 
 pub(super) fn pr_area(area: Rect) -> Rect {
     panel_areas(area)[5]
+}
+
+pub(super) fn click_target(area: Rect, column: u16, row: u16, app: &App) -> Option<ClickTarget> {
+    let panels = panel_areas(area);
+    let views = [
+        View::Overview,
+        View::Git,
+        View::Branches,
+        View::Commits,
+        View::Stash,
+    ];
+    for (panel, view) in panels.iter().take(5).zip(views) {
+        if contains(panel, column, row) {
+            return Some(ClickTarget::SidebarView(view));
+        }
+    }
+    let prs = panels[5];
+    if !contains(&prs, column, row) {
+        return None;
+    }
+    if app.pull_requests.is_empty() {
+        return Some(ClickTarget::SidebarView(View::PullRequests));
+    }
+    if row == prs.y
+        || row + 1 >= prs.y.saturating_add(prs.height)
+        || column == prs.x
+        || column + 1 >= prs.x.saturating_add(prs.width)
+    {
+        return Some(ClickTarget::SidebarView(View::PullRequests));
+    }
+    let visible = prs.height.saturating_sub(2) as usize;
+    if visible == 0 {
+        return Some(ClickTarget::SidebarView(View::PullRequests));
+    }
+    let offset = app.selected_pr.saturating_sub(visible.saturating_sub(1));
+    let index = offset.saturating_add(row.saturating_sub(prs.y + 1) as usize);
+    if index < app.pull_requests.len() {
+        Some(ClickTarget::PrIndex(index))
+    } else {
+        Some(ClickTarget::SidebarView(View::PullRequests))
+    }
+}
+
+fn contains(area: &Rect, column: u16, row: u16) -> bool {
+    column >= area.x
+        && column < area.x.saturating_add(area.width)
+        && row >= area.y
+        && row < area.y.saturating_add(area.height)
 }
 
 fn preview(text: &str, empty: &str, max_lines: usize) -> String {
