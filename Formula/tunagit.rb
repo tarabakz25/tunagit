@@ -5,12 +5,11 @@
 #   brew install tarabakz25/tunagit/tunagit
 #
 # Release checklist (after pushing a new vX.Y.Z tag and the release workflow
-# finishes): update `version`, the four `url`s, and the four `sha256` values
-# below from the SHA256SUMS.txt asset of the GitHub release.
+# finishes): update the four `url`s and the four `sha256` values below from
+# the SHA256SUMS.txt asset of the GitHub release.
 class Tunagit < Formula
   desc "Terminal interface for local Git and GitHub CLI in one place"
   homepage "https://github.com/tarabakz25/tunagit"
-  version "0.1.0"
 
   on_macos do
     on_arm do
